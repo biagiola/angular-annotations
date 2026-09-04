@@ -1,0 +1,12 @@
+ANGULAR COMMANDOS
+sudo npm install -g @angular/cli
+ng new <project-name>
+
+ng start // ng serve
+
+
+
+ng generate component <component-name>
+ng g c <component-name>
+ng g c <component-name> --skip-tests
+
