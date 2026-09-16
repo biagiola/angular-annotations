@@ -1,0 +1,60 @@
+mismo que el 53 pero usando singals.
+
+```bash
+ng g c tasks/new-task --skip-tests
+```
+
+new-task.ts
+```typescript
+import { Component, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+    selector: 'app-new-task',
+    standalone: true,
+    imports: [FormsModule], // este import nos habilita el ngModel
+    templateUrl: '.new-task.component.html',
+    styelUrl: './new-task.component.css'
+})
+export class NewTaskComponent {
+    @Output() cancel = new EventEmitter<void>();
+	enteredTitle = signal('');
+	enteredSummary = signal('');
+	enteredDate = signal('');
+
+    onCancel() {
+        this.cancel.emit();
+    }
+}
+```
+
+Agregamos click listener en el div principal y en el boton del cancel.
+new-task.html
+```html
+<div class="backdrop" (click)="onCancel()"></div>
+<dialog open>
+  <h2>Add Task</h2>
+  <form>
+    <p>
+      <label for="title">Title</label>
+      <!-- no necesitamos cambiar nada en el template para usar signals -->
+      <input type="text" id="title" name="title" [(ngModel)]="enteredTitle" />
+    </p>
+
+    <p>
+      <label for="summary">Summary</label>
+      <textarea id="summary" rows="5" name="summary" [(ngModel)]="enteredSummary"></textarea>
+    </p>
+
+    <p>
+      <label for="due-date">Due Date</label>
+      <input type="date" id="due-date" name="due-date" [(ngModel)]="enteredDate" />
+    </p>
+
+    <p class="actions">
+      <button type="button" click="onCancel()">Cancel</button>
+      <button type="submit">Create</button>
+    </p>
+  </form>
+</dialog>
+```
