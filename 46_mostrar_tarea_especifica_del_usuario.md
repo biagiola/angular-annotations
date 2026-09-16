@@ -1,4 +1,5 @@
 
+tasks.ts
 ```typescript
 @Component({
     selector: 'app-tasks',
@@ -63,7 +64,7 @@ task.html
     </p>
 </article>
 ```
-App.html
+app.html
 ```html
 <app-header />
 <main>

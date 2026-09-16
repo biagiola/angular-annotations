@@ -1,10 +1,31 @@
+app.html
+```html
+<app-header />
+<main>
+    <ul>
+        @for(user of users; track user.id) {
+            <li>
+                <app-user [user]="user" (select)="onSelectUser($event)" />
+            </li>
+        }
+    </ul>
 
+    @if (selectedUser) {
+        <app-tasks [userId]="selectedUser.id" [name]="selectedUser.name" />
+    } @else {
+        <p id="fallback">Select a user to see their tasks!!</p>
+    }
+    
+</main>
+```
+
+tasks.ts
 ```typescript
 @Component({
     selector: 'app-tasks',
     standalone: true,
     imports: [],
-    templateUrl: './taks.component.css',
+    templateUrl: './taks.component.html',
     styleUrl: 'tasks.component.css',
     imports: [TaskComponent]
 })
@@ -52,7 +73,7 @@ task.ts
 ```typescript
 import { Component, Input } from '@angular/core';
 
-interface Task = {
+interface Task {
     id: string;
     userId: string;
     title: string;
@@ -82,25 +103,4 @@ task.html
         <button>Complete</button>
     </p>
 </article>
-```
-
-App.html
-```html
-<app-header />
-<main>
-    <ul>
-        @for(user of users; track user.id) {
-            <li>
-                <app-user [user]="user" (select)="onSelectUser($event)" />
-            </li>
-        }
-    </ul>
-
-    if (selectedUser) {
-        <app-tasks [userId]="selectedUser.id" [name]="selectedUser.name">
-    } @else {
-        <p id="fallback">Select a user to see their tasks!!</p>
-    }
-    
-</main>
 ```

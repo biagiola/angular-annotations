@@ -4,6 +4,7 @@ Por le momento, cada vez que cliqueamos la lista de usuarios, solo aparece su no
 ng g c tasks/task --skip-tests
 ```
 
+tasks.ts
 ```typescript
 @Component({
     selector: 'app-tasks',
@@ -36,6 +37,7 @@ tasks.html
 ```
 
 por el momento el component Task va a ser algo dummy
+task.html
 ```html
 <article>
     <h2>Task Title</h2>
