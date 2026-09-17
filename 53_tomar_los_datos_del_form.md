@@ -1,4 +1,39 @@
-Let's use directive and two-way binding. Directives allows you to add extra functionalities to elements. In the end, directive are almost like components, unlike they dont have templates. Components are directives with templates.
+This lesson introduces directives as a concept, then immediately demonstrates the most common one you'll use: ngModel for two-way data binding on form inputs.
+
+The core concept: two-way binding with ngModel
+
+Up to now you've only seen one-way binding: [property]="value" (parent→child) and (event)="handler()" (child→parent). ngModel combines both directions into a single syntax:
+
+```html
+<input [(ngModel)]="enteredTitle" />
+```
+
+This is Angular's "banana in a box" syntax — [()] wraps ngModel. It means:
+
+1 . [ngModel] (the box, property binding): whatever enteredTitle holds gets written into the input
+2 . (ngModel) (the banana, event binding): whenever the user types, the new value gets written back into enteredTitle
+
+So the component class field and the DOM input stay in sync automatically, in both directions — no manual (input)="enteredTitle = $event.target.value" needed.
+
+What makes ngModel available: FormsModule
+
+Directives (and ngModel specifically) aren't global — they have to be imported like anything else in a standalone component:
+
+```typescript
+import { FormsModule } from '@angular/forms';
+
+@Component({
+    imports: [FormsModule], // enables ngModel
+})
+```
+
+Without this import, [(ngModel)] in the template would throw an error, since Angular wouldn't recognize it as a valid attribute.
+
+Directives vs. Components
+
+The conceptual note at the top is worth internalizing: a directive is a component without a template. Both add behavior to elements, but a directive attaches itself to an existing element (like ngModel attaching to <input>) rather than rendering its own markup. ngModel, ngClass, ngStyle are all examples of built-in directives — you'll later learn to write your own custom ones the same way you write components, just without templateUrl.
+
+side note: Form submission is going to be in the next lecture
 
 ```bash
 ng g c tasks/new-task --skip-tests
@@ -15,17 +50,7 @@ export class TasksComponent {
     @Input({ required: true }) name!: string;
     isAddingTask = false;
     
-    tasks = [
-        // ...
-    ];
-
-    get selectedUserTasks() {
-        return this.tasks.filter((task) => task.userId === this.userId);
-    }
-
-    onCompleteTask(id: string) {
-        // ...
-    }
+	// ...
 
     onStartAddTask() {
         this.isAddingTask = true;
@@ -47,7 +72,6 @@ tasks.html
         <h2>{{ name }}'s Tasks</h2>
     </header>
     <menu>
-        <!-- agregamos el event binding y apuntamos a la funcion encargado de tomarlo -->
         <button (click)="onStartAddTask()">Add Task</button>
     </menu>
     <ul>
@@ -55,7 +79,7 @@ tasks.html
             <li>
                 <app-task
                     [task]="task"
-                    (complete)="onCompleteTask($event)" // event nos da acceso al dato del evento que emitimos
+                    (complete)="onCompleteTask($event)"
                 />
             </li>
         }
@@ -65,21 +89,21 @@ tasks.html
 
 new-task.ts
 ```typescript
-import { Component, Output } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-new-task',
     standalone: true,
     imports: [FormsModule], // este import nos habilita el ngModel
-    templateUrl: '.new-task.component.html',
-    styelUrl: './new-task.component.css'
+    templateUrl: '/.new-task.component.html',
+    styleUrl: './new-task.component.css'
 })
 export class NewTaskComponent {
     @Output() cancel = new EventEmitter<void>();
-	enteredTitle = '';
-	enteredSummary = '';
-	enteredDate = '';
+    enteredTitle = '';
+    enteredSummary = '';
+    enteredDate = '';
 
     onCancel() {
         this.cancel.emit();
@@ -95,26 +119,26 @@ new-task.html
   <h2>Add Task</h2>
   <form>
     <p>
-      <label for="title">Title</label>
-	  <!-- agregamos esta directiva para mostrar en el tag lo que el user escribe -->
-	   <!-- y agregamos [()] para detonar two-way biding, estamos leyendo lo que el usuario escribe y a la vez escribiendo en el dom -->
+      	<label for="title">Title</label>
+	  	<!-- agregamos esta directiva para mostrar en el tag lo que el user escribe -->
+		<!-- y agregamos [()] para detonar two-way biding, estamos leyendo lo que el usuario escribe y a la vez escribiendo en el dom -->
 		<!-- luego elegimos en que variable decidimos alojar el valor escrito por el usuario -->
       <input type="text" id="title" name="title" [(ngModel)]="enteredTitle" />
     </p>
 
     <p>
-      <label for="summary">Summary</label>
-      <textarea id="summary" rows="5" name="summary" [(ngModel)]="enteredSummary"></textarea>
+		<label for="summary">Summary</label>
+		<textarea id="summary" rows="5" name="summary" [(ngModel)]="enteredSummary"></textarea>
     </p>
 
     <p>
-      <label for="due-date">Due Date</label>
-      <input type="date" id="due-date" name="due-date" [(ngModel)]="enteredDate" />
+		<label for="due-date">Due Date</label>
+		<input type="date" id="due-date" name="due-date" [(ngModel)]="enteredDate" />
     </p>
 
     <p class="actions">
-      <button type="button" click="onCancel()">Cancel</button>
-      <button type="submit">Create</button>
+		<button type="button" click="onCancel()">Cancel</button>
+		<button type="submit">Create</button>
     </p>
   </form>
 </dialog>

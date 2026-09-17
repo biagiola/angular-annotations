@@ -1,5 +1,47 @@
 All the task logic managment we're going to pass from task.component to task.service
 
+This is a big conceptual jump — services and dependency injection (DI), Angular's way of separating data/business logic from components, whose job should really just be handling the UI.
+
+The core concept: why move logic out of the component?
+
+Before this lesson, TasksComponent owned the tasks array directly and had all the filter/add/remove logic inline. The problem: if another component elsewhere in the app also needed access to tasks (not just this one nested under a selected user), you'd either have to duplicate that array and logic, or awkwardly pass it down through many layers of @Input/@Output. A service solves this by holding shared data/logic in one place that any component can request access to.
+
+The three ways to get a service instance (and why only one is correct)
+
+The commented-out code walks through this progression, which is worth understanding step by step:
+
+1 . private tasksService = new TasksService(); — ❌ Wrong. Every component that does this creates its own separate instance of TasksService, each with its own independent copy of the tasks array. Changes in one component's instance wouldn't be visible in another's — defeating the whole purpose of centralizing data.
+2 . Manual constructor assignment:
+```typescript
+   private tasksService: TasksService;
+   constructor(tasksService: TasksService) {
+       this.tasksService = tasksService;
+   }
+```
+
+This is correct in principle — but only works if something outside the class provides that tasksService argument. That "something" is Angular's dependency injection system.
+
+The shortcut (what you'll actually write):
+```typescript
+   constructor(private tasksService: TasksService) {}
+```
+
+This is TypeScript parameter property syntax — declaring private directly on a constructor parameter automatically creates the class field and assigns it, in one line. Functionally identical to #2, just less code.
+
+What makes DI work: @Injectable({ providedIn: 'root' })
+```typescript
+@Injectable({ providedIn: 'root' })
+export class TasksService { ... }
+```
+
+This decorator tells Angular "this class can be injected into constructors," and providedIn: 'root' tells Angular to create exactly one instance of this service for the entire app (a singleton) and hand that same instance to every component that asks for it via constructor injection. This is what guarantees all components share the same tasks array.
+
+The logic that moved
+1 . The tasks array itself is now private inside TasksService, not the component.
+2 . selectedUserTasks (a getter in the component) is replaced by calling this.tasksService.getUserTasks(this.userId).
+3 . onAddTask no longer mutates a local array — it delegates to this.tasksService.addTask(...).
+4 . A new removeTask(id) method now lives in the service, ready to replace the old inline filter logic for completing/removing tasks.
+
 tasks.component.ts
 ```typescript
 import { Component, Input } from '@angular/core';
@@ -44,7 +86,11 @@ export class TasksComponent {
     }
 
     onCompleteTask(id: string) {
-        this.tasks = this.tasks.filter((task) => task.id !== id);
+        // before
+        // this.tasks = this.tasks.filter((task) => task.id !== id);
+
+        // now
+        this.tasksService.removeTask(id);
     }
 
     onStartAddTask() {
@@ -64,6 +110,7 @@ export class TasksComponent {
 
 task.service.ts
 ```typescript
+import { Injectable } from '@angular/core';
 import { type NewTaskData } from './task/task.model';
 
 // Necesitamos especificar el service como injectable para poder usar en el constructor.
@@ -84,7 +131,7 @@ export class TasksService {
     ];
 
     // traemos tambien de la funcion selectedUserTask que estaba en tasks.component.ts
-    getUserTask(userId: string) {
+    getUserTasks(userId: string) {
         return this.tasks.filter((task) => task.userId === userId);
     }
 
@@ -94,7 +141,7 @@ export class TasksService {
             userId: userId,
             title: taskData.title,
             summary: taskData.summary,
-            date: taskData.date
+            dueDate: taskData.date
         });
     }
 
@@ -103,3 +150,5 @@ export class TasksService {
     }
 }
 ```
+
+Key takeaway: services + @Injectable({ providedIn: 'root' }) give you a singleton that holds shared state/logic outside any one component, and constructor injection (constructor(private myService: MyService) {}) is how Angular hands that same instance to every component that needs it — this is the foundation for keeping components "dumb" (UI-focused) while services handle data and business rules.

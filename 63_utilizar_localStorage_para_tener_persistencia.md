@@ -1,5 +1,6 @@
 task.service.ts
 ```typescript
+import { Injectable } from '@angular/core';
 import { type NewTaskData } from './task/task.model';
 
 @Injectable({ providedIn: 'root' })
@@ -24,7 +25,7 @@ export class TasksService {
         }
     }
 
-    getUserTask(userId: string) {
+    getUserTasks(userId: string) {
         return this.tasks.filter((task) => task.userId === userId);
     }
 
@@ -34,7 +35,7 @@ export class TasksService {
             userId: userId,
             title: taskData.title,
             summary: taskData.summary,
-            date: taskData.date
+            dueDate: taskData.date
         });
 
         // llamamos cada vez que modificamos

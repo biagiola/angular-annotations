@@ -1,5 +1,20 @@
 Let's use directive and two-way binding. Directives allows you to add extra functionalities to elements. In the end, directive are almost like components, unlike they dont have templates. Components are directives with templates.
 
+This lesson closes the loop: capturing form data, emitting it up as a typed object, and using it to construct a new item in the parent's array — completing the full add-task flow.
+
+The core concept: form submission via (ngSubmit)
+```html
+<form (ngSubmit)="onSubmit()">
+```
+
+(ngSubmit) is Angular's own event binding for form submission — it fires when the form submits, but Angular automatically calls preventDefault() for you (this is what FormsModule gives you, per the comment in the code). That's why there's no manual event.preventDefault() anywhere: normally a <button type="submit"> inside a <form> triggers a native browser submission (page reload), but FormsModule + (ngSubmit) intercepts that so everything stays client-side in Angular.
+
+The data flow, end to end
+1 . new-task.ts: onSubmit() bundles the three ngModel-bound fields into an object typed as NewTaskData and emits it: this.add.emit({ title, summary, date }).
+2 . tasks.html: (add)="onAddTask($event)" listens for that emitted object.
+3 . tasks.component.ts: onAddTask(taskData: NewTaskData) receives it and builds a full Task object (adding an id and the userId), then adds it to this.tasks.
+4 . Because selectedUserTasks is a getter that filters this.tasks, the @for loop picks up the new task automatically — no extra "refresh" logic needed.
+
 task.model.ts
 ```typescript
 export interface Task {
@@ -20,39 +35,12 @@ export interface NewTaskData {
 tasks.component.ts
 ```typescript
 ...
-import { NewTaskData } from './task/task.model';
-
-@Component({
-    ...
-    imports: [TaskComponent, NewTaskComponent]
-})
 export class TasksComponent {
     @Input({ required: true }) userId!: string;
     @Input({ required: true }) name!: string;
     isAddingTask = false;
     
-    tasks = [
-        {
-            id: 't1',
-            userId: 'u1',
-            title: 'Master Angular',
-            summary: 'Learn all the basic and advance feature of Angular and how to apply them.',
-            dueDate: '2025-12-31'
-        },
-        // ...
-    ];
-
-    get selectedUserTasks() {
-        return this.tasks.filter((task) => task.userId === this.userId);
-    }
-
-    onCompleteTask(id: string) {
-        // ...
-    }
-
-    onStartAddTask() {
-        this.isAddingTask = true;
-    }
+    // ...
 
     onCancelAddTask() {
         this.isAddingTask = false;
@@ -60,13 +48,13 @@ export class TasksComponent {
 
     onAddTask(taskData: NewTaskData) {
         // lo coloca al final
-        this.tasks.push({
-            id: new Date().getTime().toString(),
-            userId: this.userId,
-            title: taskData.title,
-            summary: taskData.summary,
-            date: taskData.date
-        });
+        // this.tasks.push({
+        //     id: new Date().getTime().toString(),
+        //     userId: this.userId,
+        //     title: taskData.title,
+        //     summary: taskData.summary,
+        //     dueDate: taskData.date
+        // });
 
         // lo coloca al comienzo
         this.tasks.unshift({
@@ -74,7 +62,7 @@ export class TasksComponent {
             userId: this.userId,
             title: taskData.title,
             summary: taskData.summary,
-            date: taskData.date
+            dueDate: taskData.date
         });
 
         this.isAddingTask = false;
@@ -93,7 +81,6 @@ tasks.html
         <h2>{{ name }}'s Tasks</h2>
     </header>
     <menu>
-        <!-- agregamos el event binding y apuntamos a la funcion encargado de tomarlo -->
         <button (click)="onStartAddTask()">Add Task</button>
     </menu>
     <ul>
@@ -101,7 +88,7 @@ tasks.html
             <li>
                 <app-task
                     [task]="task"
-                    (complete)="onCompleteTask($event)" // event nos da acceso al dato del evento que emitimos
+                    (complete)="onCompleteTask($event)"
                 />
             </li>
         }
@@ -111,21 +98,19 @@ tasks.html
 
 new-task.ts
 ```typescript
-import { Component, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { type NewTaskData } from '../task/task.model';
-
+...
 @Component({
     selector: 'app-new-task',
     standalone: true,
-    imports: [FormsModule], // este import nos habilita el ngModel
-    templateUrl: '.new-task.component.html',
-    styelUrl: './new-task.component.css'
+    imports: [FormsModule],
+    templateUrl: './new-task.component.html',
+    styleUrl: './new-task.component.css'
 })
 export class NewTaskComponent {
     @Output() cancel = new EventEmitter<void>();
     
-    // creamos un nuevo output para los valores del form
+    // creamos un nuevo output para que lo escuche el componente padre (tasks)
+    // donde guardaremos los valores del form.
     @Output() add = new EventEmitter<NewTaskData>();
 
 	enteredTitle = '';
@@ -174,98 +159,13 @@ new-task.html
         <!-- el submit del form se ejecutara, es la funcionalida del html, debemos prevenir ese comportamiento -->
         <!-- el request tiene que quedar del lado del cliente en el javascript, nuestro angular. -->
         <!-- Eso no permite por defecto hacer el FormsModule al importarlo  -->
-        <button type="button" click="onCancel()">Cancel</button>
+        <button type="button" (click)="onCancel()">Cancel</button>
         <button type="submit">Create</button>
     </p>
   </form>
 </dialog>
 ```
 
-new-task.css
-```css
-.backdrop {
-  background-color: rgba(0, 0, 0, 0.9);
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-}
+One more thing worth noting for later: right now the form doesn't reset or get destroyed after adding a task in a way that's obviously visible in this snippet — but since isAddingTask = false at the end of onAddTask, the @if unmounts <app-new-task> entirely, which destroys the component and its state. So next time it opens, the fields will be blank again — that's a nice side effect of the @if-based show/hide approach from a couple lessons ago.
 
-dialog {
-  width: 90%;
-  max-width: 30rem;
-  background-color: #433352;
-  border-radius: 6px;
-  border: none;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
-  padding: 1rem;
-  top: 5rem;
-}
-
-h2 {
-  margin: 0;
-  color: #d0c2e1;
-}
-
-label {
-  display: block;
-  font-weight: bold;
-  font-size: 0.85rem;
-  color: #ab9ac0;
-}
-
-input,
-textarea {
-  width: 100%;
-  font: inherit;
-  padding: 0.15rem 0.25rem;
-  border-radius: 4px;
-  border: 1px solid #ab9ac0;
-  background-color: #d0c2e1;
-}
-
-.actions {
-  margin: 1rem 0 0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.25rem;
-}
-
-button {
-  font: inherit;
-  cursor: pointer;
-  border: none;
-  padding: 0.35rem 1.25rem;
-  border-radius: 4px;
-  background-color: transparent;
-}
-
-button[type="button"] {
-  color: #bdadcf;
-}
-
-button[type="button"]:hover,
-button[type="button"]:active {
-  color: #d0c2e1;
-}
-
-button[type="submit"] {
-  background-color: #9c73ca;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-}
-
-button[type="submit"]:hover,
-button[type="submit"]:active {
-  background-color: #895cce;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
-}
-
-@media (min-width: 768px) {
-  dialog {
-    padding: 2rem;
-  }
-}
-```
+Key takeaway: (ngSubmit) + FormsModule gives you a clean, no-page-reload form submission flow, and the "shape data on the way up, reshape it again in the parent" pattern (NewTaskData → full Task) is a common way to keep form components decoupled from how their data is ultimately stored.

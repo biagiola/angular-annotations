@@ -1,5 +1,30 @@
 Ahora utilizaremos de nuevo, elementos de nuestro nuevo service pero esta vez en new-task component.
 
+This lesson mirrors the previous one exactly, just applied to removing tasks instead of adding them: TaskComponent now injects TasksService directly and calls removeTask itself, instead of emitting an event for TasksComponent to handle.
+
+The core concept: same DI pattern, opposite direction
+
+Previously, TaskComponent had @Output() complete = new EventEmitter<string>(), and clicking "Complete" emitted the task's id up to TasksComponent, which then called this.tasksService.removeTask(id).
+
+Now TaskComponent cuts out the middleman:
+
+```typescript
+private tasksService = inject(TasksService);
+
+onCompleteTask() {
+    this.tasksService.removeTask(this.task.id);
+}
+```
+
+Since TaskComponent already has this.task (passed in via @Input), it has everything it needs to call removeTask on its own — no need to bubble anything up through an @Output. This is the same insight as last lesson: once a component can inject the singleton service, it doesn't need to relay data through its parent just to trigger a shared-state change.
+
+What disappears as a result
+1 . @Output() complete is gone from TaskComponent — nothing external needs to know a task was completed anymore.
+2 . (complete)="onCompleteTask($event)" is removed from tasks.html on <app-task> — there's no event to listen for.
+3 . onCompleteTask(id: string) can be deleted entirely from TasksComponent — that responsibility has moved fully into TaskComponent + TasksService.
+
+This is a nice illustration of how introducing a shared service can shrink a parent component over time — logic that used to have to live centrally (because only the parent could touch the array) can now be pushed down to wherever it's actually triggered.
+
 new-task.ts
 ```typescript
 import { Component, EventEmitter, Output, Input, inject } from '@angular/core';
@@ -12,8 +37,8 @@ import { TasksService } from '../tasks.service';
     selector: 'app-new-task',
     standalone: true,
     imports: [FormsModule], // este import nos habilita el ngModel
-    templateUrl: '.new-task.component.html',
-    styelUrl: './new-task.component.css'
+    templateUrl: './new-task.component.html',
+    styleUrl: './new-task.component.css'
 })
 export class NewTaskComponent {
     // agregamos variable para manejar el userId
@@ -48,7 +73,6 @@ export class NewTaskComponent {
         }, this.userId);
 
         // cerramos el dialog luego de enviar el formulario
-        // this.close = false;
         this.close.emit();
     }
 }
@@ -62,7 +86,7 @@ export class TasksComponent {
     @Input({ required: true }) name!: string;
     isAddingTask = false;
 
-    constructor(private tasksService; TasksService) {}
+    constructor(private tasksService: TasksService) {}
 
     get selectedUserTasks() {
         return this.tasksService.getUserTasks(this.userId);
@@ -121,14 +145,14 @@ import { TasksService } from '../tasks.service';
     selector: 'app-task',
     standalone: true,
     templateUrl: './task.component.html',
-    styleUrl: './task.component.css'
+    styleUrl: './task.component.css',
     imports: [CardComponent, DatePipe],
 })
 export class TaskComponent {
     @Input({ required: true }) task!: Task;
 
     // injectamos el task service
-    private tasksService = inject();
+    private tasksService = inject(TasksService);
 
     onCompleteTask() {
         this.tasksService.removeTask(this.task.id);
@@ -160,3 +184,5 @@ tasks.html
     </ul>
 </section>
 ```
+
+Key takeaway: this lesson doesn't introduce anything mechanically new — it's reinforcing that any component with access to a piece of data it owns locally (like task.id) can inject the relevant service and act on it directly, rather than always needing to emit events upward. That said, @Output still has its place (like close on NewTaskComponent) whenever the parent genuinely needs to react to something itself (e.g., closing a dialog) — DI just removes the unnecessary relaying.

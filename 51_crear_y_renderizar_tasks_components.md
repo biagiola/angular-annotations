@@ -1,5 +1,27 @@
 Let's make a dialog for our form new task and make it closable.
 
+This lesson covers conditionally rendering a modal/dialog component and closing it via two different triggers — building on the @Output/EventEmitter pattern from last time, now applied to toggling visibility instead of removing data.
+
+The core concept: boolean flag controls a child component's existence
+1 . isAddingTask in TasksComponent is the single source of truth for "is the dialog open."
+2 . tasks.html wraps <app-new-task> in @if (isAddingTask) — so the component isn't just hidden with CSS, it's not even created until the flag is true. This matters: Angular fully destroys/recreates it each toggle, which also resets the form fields automatically.
+3 . onStartAddTask() (wired to the "Add Task" button) flips the flag to true.
+4 . onCancelAddTask() flips it back to false, and is passed down as a handler for the child's (cancel) event.
+The "closable" part: two ways to trigger the same event
+
+NewTaskComponent exposes one @Output() cancel, but two different UI elements in its own template trigger it:
+
+Clicking the backdrop (<div class="backdrop" (click)="onCancel()">) — the semi-transparent overlay behind the dialog
+Clicking the Cancel button inside the form
+
+Both call the same local onCancel() method, which does this.cancel.emit(). The parent doesn't know or care which one was clicked — it just gets told "cancel happened" and reacts once (isAddingTask = false).
+
+This "backdrop click closes modal" is a very common UI pattern, and doing it this way (rather than, say, a global click listener) keeps it scoped cleanly to the component.
+
+The native <dialog> element
+
+Worth noting: this template uses the actual HTML <dialog> tag with the open attribute — a real, semantic, built-in element (not a generic styled <div>). It's a nice example of pairing native HTML modal semantics with Angular's structural control flow.
+
 ```bash
 ng g c tasks/new-task --skip-tests
 ```
@@ -13,24 +35,13 @@ tasks.component.ts
 export class TasksComponent {
     @Input({ required: true }) userId!: string;
     @Input({ required: true }) name!: string;
+
+    // single source of true para saber si el dialog esta abierto
     isAddingTask = false;
     
-    tasks = [
-        // ...
-    ];
+    // ...
 
-    get selectedUserTasks() {
-        return this.tasks.filter((task) => task.userId === this.userId);
-    }
-
-    onCompleteTask(id: string) {
-        // ...
-    }
-
-    onStartAddTask() {
-        this.isAddingTask = true;
-    }
-
+    // este metodo se encargara de modificar la variable existente en el componente hijo
     onCancelAddTask() {
         this.isAddingTask = false;
     }
@@ -47,15 +58,15 @@ tasks.html
         <h2>{{ name }}'s Tasks</h2>
     </header>
     <menu>
-        <!-- agregamos el event binding y apuntamos a la funcion encargado de tomarlo -->
         <button (click)="onStartAddTask()">Add Task</button>
     </menu>
     <ul>
         @for (task of selectedUserTasks; track task.id) {
             <li>
+                <!-- el evento complete nos da acceso al dato del evento que emitimos -->
                 <app-task
                     [task]="task"
-                    (complete)="onCompleteTask($event)" // event nos da acceso al dato del evento que emitimos
+                    (complete)="onCompleteTask($event)"
                 />
             </li>
         }
@@ -65,16 +76,18 @@ tasks.html
 
 new-task.ts
 ```typescript
-import { Component, Output } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 
 @Component({
     selector: 'app-new-task',
     standalone: true,
     imports: [],
-    templateUrl: '.new-task.component.html',
-    styelUrl: './new-task.component.css'
+    templateUrl: '/.new-task.component.html',
+    styleUrl: './new-task.component.css'
 })
 export class NewTaskComponent {
+    // cancel es la propierdad html de este tag hijo app-new-task, el cual sera enlazado (binding)
+    // con el metodo que cambia el estado del dialog en el component padre
     @Output() cancel = new EventEmitter<void>();
 
     onCancel() {
@@ -106,7 +119,7 @@ new-task.html
     </p>
 
     <p class="actions">
-      <button type="button" click="onCancel()">Cancel</button>
+      <button type="button" (click)="onCancel()">Cancel</button>
       <button type="submit">Create</button>
     </p>
   </form>

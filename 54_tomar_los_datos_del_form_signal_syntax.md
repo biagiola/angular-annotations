@@ -6,15 +6,15 @@ ng g c tasks/new-task --skip-tests
 
 new-task.ts
 ```typescript
-import { Component, Output } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-new-task',
     standalone: true,
     imports: [FormsModule], // este import nos habilita el ngModel
-    templateUrl: '.new-task.component.html',
-    styelUrl: './new-task.component.css'
+    templateUrl: '/.new-task.component.html',
+    styleUrl: './new-task.component.css'
 })
 export class NewTaskComponent {
     @Output() cancel = new EventEmitter<void>();
@@ -52,7 +52,7 @@ new-task.html
     </p>
 
     <p class="actions">
-      <button type="button" click="onCancel()">Cancel</button>
+      <button type="button" (click)="onCancel()">Cancel</button>
       <button type="submit">Create</button>
     </p>
   </form>
